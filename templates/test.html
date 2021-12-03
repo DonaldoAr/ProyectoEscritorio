@@ -1,0 +1,84 @@
+<html>
+    <head>
+        <title>Python Flask Upload and display image</title>
+        <script src="js/socket.io.js"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" />        
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+        <!-- agregue estos -->
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha256-k2WSCIexGzOj3Euiig+TlR8gA0EmPjuc79OEeY5L45g=" crossorigin="anonymous"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>   
+    </head>
+    <body>
+        <!-- <p><h1 align="center">Python Flask Upload and display image</h1></p> -->
+        <img class="fondo" id="photo">
+        <div class="container">
+            <div class="row">
+                {% if filename %}
+                    <div>
+                        <img class="fondo" src="{{ url_for('display_image', filename=filename) }}">
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <script type="text/javascript">
+            $(document).ready(function(){
+            let namespace = "/test";
+            let video = document.querySelector("#videoElement");
+            let canvas = document.querySelector("#canvasElement");
+            let ctx = canvas.getContext('2d');
+            photo = document.getElementById('photo');
+            var localMediaStream = null;
+
+            var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+
+            function sendSnapshot() {
+                if (!localMediaStream) {
+                return;
+                }
+
+                ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, 0, 0, 300, 150);
+
+                let dataURL = canvas.toDataURL('image/jpeg');
+                socket.emit('input image', dataURL);
+
+                socket.emit('output image')
+
+                var img = new Image();
+                socket.on('out-image-event',function(data){
+
+
+                img.src = dataURL//data.image_data
+                photo.setAttribute('src', data.image_data);
+
+                });
+
+
+            }
+
+            socket.on('connect', function() {
+                console.log('Connected!');
+            });
+
+            var constraints = {
+                video: {
+                width: { min: 640 },
+                height: { min: 480 }
+                }
+            };
+
+            navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
+                video.srcObject = stream;
+                localMediaStream = stream;
+
+                setInterval(function () {
+                sendSnapshot();
+                }, 50);
+            }).catch(function(error) {
+                console.log(error);
+            });
+            });
+        </script>
+
+    </body>
+</html>
